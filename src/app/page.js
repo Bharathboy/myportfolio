@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
 // SVG Icons as React components
 const Github = ({ className }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -51,20 +52,232 @@ const Globe = ({ className }) => (
   </svg>
 );
 
+const Menu = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+const X = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+// Floating Particles Component
+const FloatingParticles = () => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const particlesRef = useRef([]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Initialize particles
+    const initParticles = () => {
+      particlesRef.current = [];
+      for (let i = 0; i < 50; i++) {
+        particlesRef.current.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2,
+          size: Math.random() * 3 + 1,
+          opacity: Math.random() * 0.5 + 0.2
+        });
+      }
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particlesRef.current.forEach(particle => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+        
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(147, 197, 253, ${particle.opacity})`;
+        ctx.fill();
+      });
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    initParticles();
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{ background: 'transparent' }}
+    />
+  );
+};
+
+// Typewriter Effect Component
+const TypewriterText = ({ text, speed = 100 }) => {
+  const [displayText, setDisplayText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, speed);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, text, speed]);
+
+  return (
+    <span>
+      {displayText}
+      {currentIndex < text.length && (
+        <span className="animate-pulse">|</span>
+      )}
+    </span>
+  );
+};
+
+// Dynamic 3D Card Component
+const Dynamic3DCard = ({ children, className = '' }) => {
+  const [transform, setTransform] = useState('');
+  const cardRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    
+    const card = cardRef.current;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = (y - centerY) / 10;
+    const rotateY = (centerX - x) / 10;
+    
+    setTransform(`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`);
+  };
+
+  const handleMouseLeave = () => {
+    setTransform('');
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className={`transition-transform duration-300 ease-out ${className}`}
+      style={{ transform }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </div>
+  );
+};
+
 const ModernPortfolio = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [activeSection, setActiveSection] = useState('home');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [skillProgress, setSkillProgress] = useState({});
 
   useEffect(() => {
-    setIsVisible(true);
-    
+    // Loading animation
+    const loadingTimer = setTimeout(() => {
+      setIsLoading(false);
+      setIsVisible(true);
+    }, 2000);
+
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
+
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+      
+      const sections = ['home', 'skills', 'projects', 'contact'];
+      const scrollPosition = window.scrollY + 100;
+
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section);
+            
+            // Trigger skill animations when skills section is visible
+            if (section === 'skills' && !skillProgress.React) {
+              setTimeout(() => {
+                setSkillProgress({
+                  React: 95,
+                  'Next.js': 90,
+                  'Node.js': 85,
+                  Python: 88,
+                  MongoDB: 82,
+                  'AI/ML': 78
+                });
+              }, 500);
+            }
+            break;
+          }
+        }
+      }
+    };
     
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      clearTimeout(loadingTimer);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [skillProgress]);
+
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMenuOpen(false);
+  };
+
+  const navItems = [
+    { id: 'home', label: 'Home' },
+    { id: 'skills', label: 'Skills' },
+    { id: 'projects', label: 'Projects' },
+    { id: 'contact', label: 'Contact' }
+  ];
 
   const skills = [
     { name: 'React', level: 95, color: 'from-blue-500 to-cyan-500' },
@@ -99,132 +312,251 @@ const ModernPortfolio = () => {
     }
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative mb-8">
+            <div className="w-20 h-20 border-4 border-cyan-400/30 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-cyan-400 rounded-full animate-spin"></div>
+          </div>
+          <div className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+            <TypewriterText text="Loading Portfolio..." speed={150} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-800 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
-        <div className="absolute top-40 left-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-500"></div>
-      </div>
+      <FloatingParticles />
+      
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-700/30 transition-all duration-300"
+           style={{
+             transform: `translateY(${scrollY > 50 ? '-2px' : '0px'})`,
+             boxShadow: scrollY > 50 ? '0 10px 30px rgba(0,0,0,0.3)' : 'none'
+           }}>
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                <Code className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                Bharath S
+              </span>
+            </div>
 
-      {/* Mouse follower */}
+            <div className="hidden md:flex items-center space-x-8">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 transform hover:scale-110 ${
+                    activeSection === item.id
+                      ? 'text-cyan-400'
+                      : 'text-gray-300 hover:text-cyan-400'
+                  }`}
+                >
+                  {item.label}
+                  {activeSection === item.id && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full animate-pulse"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 text-gray-300 hover:text-cyan-400 transition-colors transform hover:scale-110"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+
+          {isMenuOpen && (
+            <div className="md:hidden mt-4 pb-4 border-t border-gray-700/30 animate-fadeInDown">
+              <div className="flex flex-col space-y-2 pt-4">
+                {navItems.map((item, index) => (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollToSection(item.id)}
+                    className={`text-left px-4 py-2 text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                      activeSection === item.id
+                        ? 'text-cyan-400 bg-cyan-400/10'
+                        : 'text-gray-300 hover:text-cyan-400 hover:bg-gray-800/50'
+                    } rounded-lg`}
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Enhanced Mouse follower with trail */}
       <div 
-        className="fixed w-4 h-4 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full pointer-events-none z-50 transition-all duration-100 ease-out mix-blend-difference"
+        className="fixed w-4 h-4 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full pointer-events-none z-50 transition-all duration-75 ease-out mix-blend-difference"
         style={{
           left: mousePosition.x - 8,
           top: mousePosition.y - 8,
         }}
       />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-12">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 pt-24">
         {/* Hero Section */}
-        <div className={`text-center mb-20 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <section id="home" className={`text-center mb-20 min-h-screen flex flex-col justify-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="relative inline-block mb-6">
             <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full blur-lg opacity-50 animate-pulse"></div>
-            <div className="relative w-32 h-32 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full mx-auto flex items-center justify-center">
-              <Code className="w-16 h-16 text-white" />
+            <div className="relative w-32 h-32 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full mx-auto flex items-center justify-center transform hover:scale-110 transition-all duration-500 cursor-pointer"
+                 style={{
+                   transform: `scale(${1 + Math.sin(Date.now() * 0.001) * 0.05})`
+                 }}>
+              <Code className="w-16 h-16 text-white animate-pulse" />
             </div>
           </div>
           
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-            Bharath S
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 animate-gradient">
+            <TypewriterText text="Bharath S" speed={200} />
           </h1>
-          <p className="text-2xl text-gray-300 mb-6">Full Stack Developer & AI Enthusiast</p>
+          <p className="text-2xl text-gray-300 mb-6">
+            <TypewriterText text="Full Stack Developer & AI Enthusiast" speed={100} />
+          </p>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Crafting the future of web applications with cutting-edge technologies and innovative solutions. 
-            Let's build something extraordinary together.
+            Let&apos;s build something extraordinary together.
           </p>
-        </div>
+        </section>
 
         {/* Skills Section */}
-        <div className={`mb-20 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <section id="skills" className={`mb-20 py-20 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h2 className="text-4xl font-bold text-white mb-12 text-center">Skills & Expertise</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {skills.map((skill, index) => (
               <div key={skill.name} className="group">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-300 font-medium">{skill.name}</span>
-                  <span className="text-gray-400">{skill.level}%</span>
+                  <span className="text-gray-400 animate-pulse">{skillProgress[skill.name] || 0}%</span>
                 </div>
                 <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
                   <div 
-                    className={`h-full bg-gradient-to-r ${skill.color} rounded-full transition-all duration-1000 ease-out group-hover:scale-105`}
+                    className={`h-full bg-gradient-to-r ${skill.color} rounded-full transition-all duration-2000 ease-out group-hover:scale-105 relative overflow-hidden`}
                     style={{ 
-                      width: isVisible ? `${skill.level}%` : '0%',
-                      transitionDelay: `${index * 200}ms`
+                      width: `${skillProgress[skill.name] || 0}%`,
                     }}
-                  />
+                  >
+                    <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Projects Section */}
-        <div className={`mb-20 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <section id="projects" className={`mb-20 py-20 transition-all duration-1000 delay-600 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h2 className="text-4xl font-bold text-white mb-12 text-center">Featured Projects</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project, index) => (
-              <div key={index} className="group relative">
+              <Dynamic3DCard key={index} className="group relative h-full">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 to-purple-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 hover:border-cyan-500/50 transition-all duration-300 group-hover:transform group-hover:scale-105">
-                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${project.gradient} mb-4`}>
+                <div className="relative bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 hover:border-cyan-500/50 transition-all duration-300 h-full flex flex-col">
+                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${project.gradient} mb-4 transform group-hover:rotate-12 transition-transform duration-300`}>
                     {project.icon}
                   </div>
                   <h3 className="text-xl font-bold text-white mb-3">{project.title}</h3>
-                  <p className="text-gray-400 mb-4 leading-relaxed">{project.description}</p>
+                  <p className="text-gray-400 mb-4 leading-relaxed flex-grow">{project.description}</p>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {project.tech.map((tech, techIndex) => (
-                      <span key={techIndex} className="px-3 py-1 bg-gray-700/50 text-gray-300 rounded-full text-sm">
+                      <span key={techIndex} className="px-3 py-1 bg-gray-700/50 text-gray-300 rounded-full text-sm hover:bg-gray-600/50 transition-colors cursor-default">
                         {tech}
                       </span>
                     ))}
                   </div>
-                  <button className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors group">
-                    View Project <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <button className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors group/btn">
+                    View Project 
+                    <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
                   </button>
                 </div>
-              </div>
+              </Dynamic3DCard>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Contact Section */}
-        <div className={`text-center transition-all duration-1000 delay-900 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h2 className="text-4xl font-bold text-white mb-8">Let's Connect</h2>
+        <section id="contact" className={`text-center py-20 transition-all duration-1000 delay-900 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <h2 className="text-4xl font-bold text-white mb-8">Let&apos;s Connect</h2>
           <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-            Ready to collaborate on your next project? Let's discuss how we can bring your ideas to life.
+            Ready to collaborate on your next project? Let&apos;s discuss how we can bring your ideas to life.
           </p>
           <div className="flex flex-wrap justify-center gap-6">
-            <a 
-              href="https://www.linkedin.com/in/bharath-s" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 hover:scale-105"
-            >
-              <Linkedin className="w-5 h-5" />
-              LinkedIn
-            </a>
-            <a 
-              href="https://github.com/yourusername" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl hover:from-gray-800 hover:to-gray-900 transition-all duration-300 hover:scale-105"
-            >
-              <Github className="w-5 h-5" />
-              GitHub
-            </a>
-            <a 
-              href="mailto:your.email@example.com"
-              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105"
-            >
-              <Mail className="w-5 h-5" />
-              Email
-            </a>
+            <Dynamic3DCard>
+              <a 
+                href="https://www.linkedin.com/in/bharath-s" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300"
+              >
+                <Linkedin className="w-5 h-5 group-hover:animate-bounce" />
+                LinkedIn
+              </a>
+            </Dynamic3DCard>
+            <Dynamic3DCard>
+              <a 
+                href="https://github.com/yourusername" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-xl hover:from-gray-800 hover:to-gray-900 transition-all duration-300"
+              >
+                <Github className="w-5 h-5 group-hover:animate-spin" />
+                GitHub
+              </a>
+            </Dynamic3DCard>
+            <Dynamic3DCard>
+              <a 
+                href="mailto:your.email@example.com"
+                className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
+              >
+                <Mail className="w-5 h-5 group-hover:animate-pulse" />
+                Email
+              </a>
+            </Dynamic3DCard>
           </div>
-        </div>
+        </section>
       </div>
+
+      <style jsx>{`
+        .animate-fadeInDown {
+          animation: fadeInDown 0.5s ease-out;
+        }
+        
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+        
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translate3d(0, -100%, 0);
+          }
+          to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+        }
+        
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
     </div>
   );
 };
