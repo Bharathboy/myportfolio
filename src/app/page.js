@@ -702,7 +702,7 @@ const ModernPortfolio = () => {
               onClick={() => scrollToSection('contact')}
               className="text-lg px-10 py-5"
             >
-              Let's Talk
+              Let&apos;s Talk
             </AnimatedButton>
           </div>
         </section>
@@ -764,10 +764,10 @@ const ModernPortfolio = () => {
         <section id="contact" className="text-center py-20">
           <div className="mb-16">
             <h2 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-              Let's Connect
+              Let&apos;s Connect
             </h2>
             <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-              Ready to turn your ideas into reality? Let's collaborate and build something extraordinary together.
+              Ready to turn your ideas into reality? Let&apos;s collaborate and build something extraordinary together.
             </p>
           </div>
           
